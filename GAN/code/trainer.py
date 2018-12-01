@@ -104,42 +104,49 @@ class Trainer(object):
 
     for step in trange(self.start_step, self.max_step):
       #print('!!!!!!!!step:', step)
-      fetch_dict = {
-        'generator_optim': self.generator_optim,
+      d_fetch_dict = {
         'discriminator_optim': self.discriminator_optim,
-        'all_loss': self.all_loss,
-        'weighted_loss': self.weighted_loss,
-        'accuracy': self.accuracy,
-        'feat':self.feat}
+        'discriminator_loss': self.discriminator_loss,
+        'discriminator_accuracy': self.discriminator_accuracy}
 
+      g_fetch_dict = {
+        'generator_optim': self.generator_optim,
+        'generator_loss': self.generator_loss,
+        'generator_accuracy': self.generator_accuracy,
+        'generated_imgs':self.generated_imgs}
+
+      '''
       if step % self.log_step == self.log_step - 1:
         fetch_dict.update({
           'lr': self.lr,
           'summary': self.summary_op })
+      '''
 
-      result = self.sess.run(fetch_dict)
+      d_result = self.sess.run(d_fetch_dict)
+      g_result = self.sess.run(g_fetch_dict)
       
-      train_accuracy.append(result['accuracy'])
-      train_all_loss.append(result['all_loss'])
-      train_weighted_loss.append(result['weighted_loss'])
+      train_accuracy.append([g_result['generator_accuracy'],d_result['discriminator_accuracy']])
+      train_all_loss.append([g_result['generator_loss'],d_result['discriminator_loss']])
+      train_weighted_loss.append((g_result['generator_accuracy'] + d_result['discriminator_accuracy'])/2.0)
 
       if step % self.log_step == self.log_step - 1:
-        self.summary_writer.add_summary(result['summary'], step)
-        self.summary_writer.flush()
+        #self.summary_writer.add_summary(result['summary'], step)
+        #self.summary_writer.flush()
 
-        lr = result['lr']
-        weighted_loss = result['weighted_loss']
-        all_loss = result['all_loss']
-        accuracy = result['accuracy']
+        #lr = result['lr']
+        lr = 0.0002
+        weighted_loss = (g_result['generator_accuracy'] + d_result['discriminator_accuracy'])/2.0
+        all_loss = [g_result['generator_loss'],d_result['discriminator_loss']]
+        accuracy = [g_result['generator_accuracy'],d_result['discriminator_accuracy']]
 
-        print(step, self.max_step, lr, weighted_loss, accuracy)
+        print(step, self.max_step, weighted_loss, accuracy)
         print("\n[{}/{}:{:.6f}] Weighted Loss: {:.6f} All Loss {:} Accuracy: {:}" . \
               format(step, self.max_step, lr, weighted_loss, all_loss, accuracy))
         sys.stdout.flush()
         
       if step % self.img_save_step == self.img_save_step - 1:
 
-          output_generated_imgs = denorm_img(result['feat'][0])
+          output_generated_imgs = denorm_img(g_result['generated_imgs'])
           save_generated_imgs(output_generated_imgs, self.generated_imgs_folder, step)
           
           output_all_loss = train_all_loss
@@ -199,16 +206,22 @@ class Trainer(object):
     self.weighted_loss, self.all_loss, self.feat, self.accuracy, self.all_vars = create_model(self.model_type, x, self.labels, self.c_num, self.batch_size, is_train=True, reuse=False)        
     print('before optimizer')
     
-    generator_loss = self.all_loss[0]
-    discriminator_loss = self.all_loss[1] 
+    self.generated_imgs =  self.feat[0]   
+    
+    self.generator_loss = self.all_loss[0]
+    self.discriminator_loss = self.all_loss[1] 
+    
+    self.generator_accuracy = self.accuracy[0]
+    self.discriminator_accuracy = self.accuracy[1] 
+    
     generator_vars = self.all_vars[0]
     discriminator_vars_true = self.all_vars[1]
     discriminator_vars_generated = self.all_vars[2]
     
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-       self.generator_optim = tf.train.AdamOptimizer(learning_rate=self.generator_lr, beta1=0.5).minimize(generator_loss, var_list=generator_vars)
-       self.discriminator_optim = tf.train.AdamOptimizer(learning_rate=self.discriminator_lr, beta1=0.5).minimize(discriminator_loss, var_list=(discriminator_vars_true, discriminator_vars_generated))
+       self.generator_optim = tf.train.AdamOptimizer(learning_rate=self.generator_lr, beta1=0.5).minimize(self.generator_loss, var_list=generator_vars)
+       self.discriminator_optim = tf.train.AdamOptimizer(learning_rate=self.discriminator_lr, beta1=0.5).minimize(self.discriminator_loss, var_list=(discriminator_vars_true, discriminator_vars_generated))
 
     self.summary_op = tf.summary.merge([
       #tf.summary.scalar("c_loss", self.rpn_c_loss),

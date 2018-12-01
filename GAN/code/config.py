@@ -18,7 +18,7 @@ net_arg.add_argument('--c_num', type=int, default=2)  # Number of classes
 
 # Data
 data_arg = add_argument_group('Data')
-data_arg.add_argument('--dataset', type=str, default='celeba_small_sample', choices=['cufs', 'celeba','celeba_small_sample'])
+data_arg.add_argument('--dataset', type=str, default='cufs', choices=['cufs', 'celeba','celeba_small_sample'])
 data_arg.add_argument('--split', type=str, default='train_data')
 data_arg.add_argument('--batch_size', type=int, default=8)
 data_arg.add_argument('--batch_size_test', type=int, default=8)
