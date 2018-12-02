@@ -37,7 +37,7 @@ def get_loader(dataset, root, batch_size,  start_index, split=None, shuffle=True
       img_paths_np = get_img_paths_from_txtfile(img_list_path, img_dir, start_index)
   else:
       img_paths_np = get_img_paths_from_img_folder(img_dir)
-  print('img_paths_np: ', img_paths_np)
+  #print('img_paths_np: ', img_paths_np)
 
   with tf.device('/cpu:0'):
     img_paths = tf.convert_to_tensor(img_paths_np, dtype=tf.string)

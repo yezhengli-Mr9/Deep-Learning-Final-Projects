@@ -41,7 +41,9 @@ def build_gan_generator(z, batch_size, is_train, reuse):
 
 def build_gan_discriminator(x, batch_size, is_train, reuse):
   with tf.variable_scope('discriminator', reuse=reuse) as vs:
-            
+      
+    x = x + tf.random_normal(shape=tf.shape(x), mean=0.0, stddev=0.1, dtype=tf.float32)     
+     
     with tf.variable_scope('conv1', reuse=reuse):
       hidden_num = 128
       x = conv_factory(x, hidden_num, 5, 2, is_train, reuse, with_rec=True, activation='leaky_relu') 

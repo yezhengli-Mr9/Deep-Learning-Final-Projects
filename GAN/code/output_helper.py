@@ -17,11 +17,16 @@ def create_folder(parent_folder, config):
    return folder_path
    
 def save_generated_imgs(output_generated_imgs, generated_imgs_folder, step):
+    output_generated_imgs_binary = np.copy(output_generated_imgs)
+    output_generated_imgs_binary[output_generated_imgs_binary < 127.5] = 0
+    output_generated_imgs_binary[output_generated_imgs_binary >= 127.5] = 255
     for i in range(output_generated_imgs.shape[0]):
         img = output_generated_imgs[i]
+        img_binary = output_generated_imgs_binary[i]
         out_filename = generated_imgs_folder + '/step' + str(step) + '_imgid' + str(i) + '.png'
-        #img= img.astype(np.uint8)
         cv2.imwrite(out_filename, img)
+        out_filename_binary = generated_imgs_folder + '/step' + str(step) + '_imgid_binary' + str(i) + '.png'
+        cv2.imwrite(out_filename_binary, img_binary)
 
 def save_plot(output_training_loss, loss_plot_folder, step):
   out_filename = loss_plot_folder + '/step' + str(step) + '.png'
