@@ -75,8 +75,19 @@ def build_gan_discriminator(x, batch_size, is_train, reuse):
   return discriminator_x, discriminator_vars
 
 
-def compute_loss_accuracy(x, labels):
-    loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=x, labels=labels)
+def compute_loss_accuracy(model_type, x, labels, dg_type):
+    if (model_type == 'gan'):
+        loss = tf.nn.sigmoid_cross_entropy_with_logits(logits=x, labels=labels)
+    elif (model_type == 'wgan'):
+        if (dg_type == 'g_generated'):
+            loss = -tf.reduce_mean(x)
+        elif (dg_type == 'd_true'):
+            loss = -tf.reduce_mean(x)
+        else:
+            loss = tf.reduce_mean(x)
+        
+    else:
+        loss = tf.losses.mean_squared_error(labels, tf.nn.sigmoid(x))
     loss = tf.reduce_mean(loss) 
       
     accuracy = tf.cast(tf.equal(tf.round(tf.nn.sigmoid(x)), labels), tf.float32)
@@ -85,7 +96,7 @@ def compute_loss_accuracy(x, labels):
     return loss,accuracy
 
 
-def build_gan(x, batch_size, is_train, reuse):
+def build_gan(model_type, x, batch_size, is_train, reuse):
     true_imgs = x
     z = tf.random_uniform([batch_size, 100], minval=-1.0,maxval=1.0, dtype=tf.float32)
         
@@ -96,9 +107,9 @@ def build_gan(x, batch_size, is_train, reuse):
     discriminator_score_true, discriminator_vars_true = build_gan_discriminator(true_imgs, batch_size, is_train, reuse)
     discriminator_score_generated, discriminator_vars_generated = build_gan_discriminator(generated_imgs, batch_size, is_train, True)
     
-    generator_loss, generator_accuracy = compute_loss_accuracy(discriminator_score_generated, true_labels)   
-    discriminator_loss_true, discriminator_accuracy_true = compute_loss_accuracy(discriminator_score_true, true_labels) 
-    discriminator_loss_generated, discriminator_accuracy_generated = compute_loss_accuracy(discriminator_score_generated, generated_labels) 
+    generator_loss, generator_accuracy = compute_loss_accuracy(model_type, discriminator_score_generated, true_labels, 'g_generated')   
+    discriminator_loss_true, discriminator_accuracy_true = compute_loss_accuracy(model_type, discriminator_score_true, true_labels, 'd_true') 
+    discriminator_loss_generated, discriminator_accuracy_generated = compute_loss_accuracy(model_type, discriminator_score_generated, generated_labels, 'd_generated') 
     
     discriminator_loss = (discriminator_loss_true + discriminator_loss_generated) / 2.0
     discriminator_accuracy = (discriminator_accuracy_true + discriminator_accuracy_generated)/2.0
@@ -110,7 +121,7 @@ def build_gan(x, batch_size, is_train, reuse):
 
 def create_model(model_type, x, labels_list, c_num, batch_size, is_train, reuse):
     print('create model: ', model_type)
-    if (model_type == 'gan'):
-        return build_gan(x, batch_size, is_train, reuse)
+    if (model_type == 'gan' or model_type == 'lsgan' or model_type == 'wgan'):
+        return build_gan(model_type, x, batch_size, is_train, reuse)
 
     

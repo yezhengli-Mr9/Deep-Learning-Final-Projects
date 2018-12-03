@@ -43,7 +43,7 @@ class Trainer(object):
     self.model_type = config.model_type
 
     self.lr = tf.Variable(config.lr, name='lr')
-    self.generator_lr =  0.0002
+    self.generator_lr =  0.001
     self.discriminator_lr = 0.0002
 
     # Exponential learning rate decay
@@ -121,13 +121,15 @@ class Trainer(object):
           'lr': self.lr,
           'summary': self.summary_op })
       '''
-
+      
       d_result = self.sess.run(d_fetch_dict)
+      if (self.model_type == 'wgan'):
+          self.sess.run(self.clip_discriminator_var_op)
       g_result = self.sess.run(g_fetch_dict)
       
       train_accuracy.append([g_result['generator_accuracy'],d_result['discriminator_accuracy']])
       train_all_loss.append([g_result['generator_loss'],d_result['discriminator_loss']])
-      train_weighted_loss.append((g_result['generator_accuracy'] + d_result['discriminator_accuracy'])/2.0)
+      train_weighted_loss.append((g_result['generator_loss'] + d_result['discriminator_loss'])/2.0)
 
       if step % self.log_step == self.log_step - 1:
         #self.summary_writer.add_summary(result['summary'], step)
@@ -219,10 +221,19 @@ class Trainer(object):
     discriminator_vars_generated = self.all_vars[2]
     
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    with tf.control_dependencies(update_ops):
-       self.generator_optim = tf.train.AdamOptimizer(learning_rate=self.generator_lr, beta1=0.5).minimize(self.generator_loss, var_list=generator_vars)
-       self.discriminator_optim = tf.train.AdamOptimizer(learning_rate=self.discriminator_lr, beta1=0.5).minimize(self.discriminator_loss, var_list=(discriminator_vars_true, discriminator_vars_generated))
+    if (self.model_type == 'wgan'):
+        with tf.control_dependencies(update_ops):
+            self.generator_optim = tf.train.RMSPropOptimizer(learning_rate=self.generator_lr).minimize(self.generator_loss, var_list=generator_vars)
+            self.discriminator_optim = tf.train.RMSPropOptimizer(learning_rate=self.discriminator_lr).minimize(self.discriminator_loss, var_list=(discriminator_vars_true, discriminator_vars_generated))
+        
+        theta_d = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator')
+        self.clip_discriminator_var_op = [var.assign(tf.clip_by_value(var, -0.01,  0.01)) for var in theta_d]
 
+    else:
+        with tf.control_dependencies(update_ops):
+            self.generator_optim = tf.train.AdamOptimizer(learning_rate=self.generator_lr, beta1=0.5).minimize(self.generator_loss, var_list=generator_vars)
+            self.discriminator_optim = tf.train.AdamOptimizer(learning_rate=self.discriminator_lr, beta1=0.5).minimize(self.discriminator_loss, var_list=(discriminator_vars_true, discriminator_vars_generated))
+                                       
     self.summary_op = tf.summary.merge([
       #tf.summary.scalar("c_loss", self.rpn_c_loss),
       #tf.summary.scalar("accuracy", self.rpn_c_accuracy),
