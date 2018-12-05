@@ -45,7 +45,7 @@ misc_arg.add_argument('--test_iter', type=int, default=200)
 misc_arg.add_argument('--save_step', type=int, default=200)
 misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 'DEBUG', 'WARN'])
 misc_arg.add_argument('--log_dir', type=str, default='logs')
-misc_arg.add_argument('--data_dir', type=str, default='../../../small_data/')
+misc_arg.add_argument('--data_dir', type=str, default='../')
 misc_arg.add_argument('--random_seed', type=int, default=0)
 
 def get_config():
