@@ -53,7 +53,7 @@ class Trainer(object):
 
     self.c_num = config.c_num
 
-    self.model_dir = config.model_dir
+    #self.model_dir = config.model_dir
     self.load_path = config.load_path
 
     
@@ -65,15 +65,17 @@ class Trainer(object):
 
     self.saver = tf.train.Saver()
 
-    self.summary_writer = tf.summary.FileWriter(self.model_dir)
-    sv = tf.train.Supervisor(logdir=self.model_dir,
+    #self.summary_writer = tf.summary.FileWriter(self.model_dir)
+   
+    sv = tf.train.Supervisor(logdir=None,
                              is_chief=True,
-                             saver=self.saver,
+                             saver=None,
                              summary_op=None,
-                             summary_writer=self.summary_writer,
+                             summary_writer=None,
                              save_model_secs=60,
                              global_step=self.step,
                              ready_for_local_init_op=None)
+    
 
     gpu_options = tf.GPUOptions(allow_growth=True)
     sess_config = tf.ConfigProto(allow_soft_placement=True,
@@ -156,7 +158,7 @@ class Trainer(object):
           
           
       if step % self.save_step == self.save_step - 1:
-        self.saver.save(self.sess, self.model_dir + '/model')
+        #self.saver.save(self.sess, self.model_dir + '/model')
         
         '''
         test_accuracy = [0.0 for x in range(len(self.test_accuracy))]
